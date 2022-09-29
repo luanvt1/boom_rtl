@@ -1,0 +1,52 @@
+diff --git a/src/main/scala/subsystem/Configs.scala b/src/main/scala/subsystem/Configs.scala
+index 03de3af1a..948f29025 100644
+--- a/src/main/scala/subsystem/Configs.scala
++++ b/src/main/scala/subsystem/Configs.scala
+@@ -496,3 +496,30 @@ class WithControlBusFrequency(freqMHz: Double) extends Config((site, here, up) =
+ class WithDontDriveBusClocksFromSBus extends Config((site, here, up) => {
+   case DriveClocksFromSBus => false
+ })
++
++class WithMemoryDataBits(dataBits: Int) extends Config((site, here, up) => {
++  case MemoryBusKey => up(MemoryBusKey, site).copy(beatBytes = dataBits/8)
++})
++
++class WithLitexMemPort extends Config((site, here, up) => {
++  case ExtMem => Some(MemoryPortParams(MasterPortParams(
++                      base = x"8000_0000",
++                      size = x"8000_0000",
++                      beatBytes = site(MemoryBusKey).beatBytes,
++                      idBits = 4), 1))
++})
++
++class WithLitexMMIOPort extends Config((site, here, up) => {
++  case ExtBus => Some(MasterPortParams(
++                      base = x"1000_0000",
++                      size = x"7000_0000",
++                      beatBytes = site(SystemBusKey).beatBytes,
++                      idBits = 4))
++})
++
++class WithLitexSlavePort extends Config((site, here, up) => {
++  case ExtIn  => Some(SlavePortParams(
++                      beatBytes = site(SystemBusKey).beatBytes,
++                      idBits = 8,
++                      sourceBits = 4))
++})
+diff --git a/src/main/scala/system/Configs.scala b/src/main/scala/system/Configs.scala
+index 6f9602820..b00c3a71f 100644
+--- a/src/main/scala/system/Configs.scala
++++ b/src/main/scala/system/Configs.scala
+@@ -84,3 +84,12 @@ class MMIOPortOnlyConfig extends Config(
+ 
+ class BaseFPGAConfig extends Config(new BaseConfig)
+ class DefaultFPGAConfig extends Config(new WithNSmallCores(1) ++ new BaseFPGAConfig)
++
++class BaseLitexConfig extends Config(
++  new WithLitexMemPort() ++
++  new WithLitexMMIOPort() ++
++  new WithLitexSlavePort ++
++  new WithNExtTopInterrupts(8) ++
++  new WithCoherentBusTopology ++
++  new BaseConfig
++)
